@@ -71,6 +71,7 @@
       if (res.ok) {
         sessionStorage.setItem("brokerName", username);
         sessionStorage.setItem("brokerEmail", email);
+        sessionStorage.setItem("brokerPin", pin);
         loadDashboard();
       } else {
         document.getElementById("login-error").textContent = "Invalid email, PIN, or username. Please try again.";
@@ -80,13 +81,14 @@
     function openRfpForm() {
       const username = sessionStorage.getItem("brokerName");
       const email = sessionStorage.getItem("brokerEmail");
+      const pin = sessionStorage.getItem("brokerPin");
 
-      if (!username || !email) {
+      if (!username || !email || !pin) {
         alert("Missing session info. Please log in again.");
         return;
       }
 
-      const url = `https://airtable.com/appTl5b0TOB6Sh8N5/pagd8oOz2RO9zbYGb/form?prefill_Username=${encodeURIComponent(username)}&prefill_Email=${encodeURIComponent(email)}`;
+      const url = `https://airtable.com/appTl5b0TOB6Sh8N5/pagd8oOz2RO9zbYGb/form?prefill_Username=${encodeURIComponent(username)}&prefill_Email=${encodeURIComponent(email)}&prefill_PIN=${encodeURIComponent(pin)}`;
       window.open(url, "_blank");
     }
 
