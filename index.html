@@ -53,6 +53,9 @@
       animation: pulse 1.5s infinite;
     }
   </style>
+
+  <!-- 🎉 Confetti library -->
+  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
 </head>
 <body>
   <!-- LOGIN FORM -->
@@ -88,6 +91,8 @@
   </div>
 
   <script>
+    let previousStageMap = {}; // 🧠 Tracks previous stage per RFP
+
     async function verifyBroker() {
       const username = document.getElementById("username").value;
       const email = document.getElementById("email").value;
@@ -120,6 +125,14 @@
       window.open(url, "_blank");
     }
 
+    function triggerFireworks() {
+      confetti({
+        particleCount: 100,
+        spread: 80,
+        origin: { y: 0.6 }
+      });
+    }
+
     function loadDashboard() {
       const brokerName = sessionStorage.getItem("brokerName");
       const email = sessionStorage.getItem("brokerEmail");
@@ -145,6 +158,13 @@
           projects.forEach(proj => {
             const stages = ["Census Received", "Processing", "Engaging Carriers", "Preparing Quote", "Quote Returned"];
             const currentIndex = proj.stageIndex || 0;
+
+            // 🎉 Fireworks if stage advanced
+            const prev = previousStageMap[proj.projectName];
+            if (prev !== undefined && currentIndex > prev) {
+              triggerFireworks();
+            }
+            previousStageMap[proj.projectName] = currentIndex;
 
             const stageHTML = stages.map((stage, i) => {
               const className =
