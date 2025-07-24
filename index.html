@@ -128,8 +128,7 @@
 
     <!-- SUBMIT BUTTON -->
     <div class="section">
-      <h3>Submit a New RFP</h3>
-      <button onclick="openRfpForm()">📝 Open RFP Form</button>
+      <button onclick="openRfpForm()">📝 Submit New RFP</button>
     </div>
 
     <!-- TRACKER -->
@@ -177,7 +176,7 @@
       const email = sessionStorage.getItem("brokerEmail");
       const pin = sessionStorage.getItem("brokerPin");
 
-      const url = `https://go.brokersbloc.com/submit-page`;
+      const url = `https://brokersbloc.com/submit-quote/`;
       window.open(url, "_blank");
     }
 
