@@ -26,7 +26,6 @@
       background-color: #0056b3;
     }
 
-    /* Tracker Styles */
     @keyframes pulse {
       0% { box-shadow: 0 0 0 0 rgba(255, 193, 7, 0.7); }
       70% { box-shadow: 0 0 0 10px rgba(255, 193, 7, 0); }
@@ -53,7 +52,6 @@
       animation: pulse 1.5s infinite;
     }
 
-    /* Overlay */
     #celebration-overlay {
       position: fixed;
       top: 0; left: 0;
@@ -67,23 +65,25 @@
       flex-direction: column;
       animation: fadeIn 0.4s ease-in-out;
     }
+
     #celebration-overlay h1 {
       color: #fff;
       font-size: 48px;
       animation: bounce 1s infinite;
       text-align: center;
     }
+
     @keyframes bounce {
       0%, 100% { transform: translateY(0); }
       50% { transform: translateY(-10px); }
     }
+
     @keyframes fadeIn {
       from { opacity: 0; }
       to { opacity: 1; }
     }
   </style>
 
-  <!-- Confetti -->
   <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
 </head>
 <body>
@@ -92,16 +92,13 @@
     <h1>🎯 Stage Complete!</h1>
   </div>
 
-  <!-- Sound -->
   <audio id="celebration-sound" src="https://assets.mixkit.co/sfx/preview/mixkit-game-bonus-reached-2065.mp3"></audio>
 
   <!-- LOGIN FORM -->
   <div id="login-section" class="section">
     <h2>Broker Login</h2>
-
     <input type="text" id="username" placeholder="Username" style="margin-bottom: 10px; display: block;" />
     <input type="email" id="email" placeholder="Email" style="margin-bottom: 10px; display: block;" />
-
     <div style="position: relative; display: inline-block; margin-bottom: 10px;">
       <input type="password" id="pin" placeholder="PIN" style="padding-right: 30px;" />
       <span onclick="togglePinVisibility()" style="
@@ -114,7 +111,6 @@
         color: #007bff;
       " id="toggle-pin">👁</span>
     </div>
-
     <br />
     <button onclick="verifyBroker()">Access Portal</button>
     <p id="login-error" style="color: red;"></p>
@@ -126,10 +122,10 @@
       <h2 id="welcome-msg"></h2>
     </div>
 
-    <!-- SUBMIT BUTTON -->
+    <!-- EMBEDDED FORM -->
     <div class="section">
       <h3>Submit a New RFP</h3>
-      <button onclick="openRfpForm()">📝 Open RFP Form</button>
+      <iframe id="rfp-form" height="700" style="width:100%; border: none; border-radius: 8px;"></iframe>
     </div>
 
     <!-- TRACKER -->
@@ -172,15 +168,6 @@
       }
     }
 
-    function openRfpForm() {
-      const username = sessionStorage.getItem("brokerName");
-      const email = sessionStorage.getItem("brokerEmail");
-      const pin = sessionStorage.getItem("brokerPin");
-
-      const url = `https://airtable.com/appTl5b0TOB6Sh8N5/pagd8oOz2RO9zbYGb/form?prefill_Username=${encodeURIComponent(username)}&prefill_Email=${encodeURIComponent(email)}&prefill_PIN=${encodeURIComponent(pin)}`;
-      window.open(url, "_blank");
-    }
-
     function triggerFireworks() {
       const sound = document.getElementById("celebration-sound");
       const overlay = document.getElementById("celebration-overlay");
@@ -220,12 +207,18 @@
     function loadDashboard() {
       const brokerName = sessionStorage.getItem("brokerName");
       const email = sessionStorage.getItem("brokerEmail");
+      const pin = sessionStorage.getItem("brokerPin");
 
-      if (!brokerName || !email) return;
+      if (!brokerName || !email || !pin) return;
 
       document.getElementById("login-section").classList.add("hidden");
       document.getElementById("dashboard-section").classList.remove("hidden");
+
       document.getElementById("welcome-msg").textContent = `Welcome, ${brokerName}`;
+
+      const formBase = "https://airtable.com/embed/pagd8oOz2RO9zbYGb";
+      const rfpForm = document.getElementById("rfp-form");
+      rfpForm.src = `${formBase}?hide_link=true&prefill_Username=${encodeURIComponent(brokerName)}&prefill_Email=${encodeURIComponent(email)}&prefill_PIN=${encodeURIComponent(pin)}`;
 
       fetch(`/api/projects?broker=${encodeURIComponent(brokerName)}`)
         .then(res => res.json())
