@@ -26,7 +26,7 @@
       background-color: #0056b3;
     }
 
-    /* 💥 Tracker Styles */
+    /* Tracker Styles */
     @keyframes pulse {
       0% { box-shadow: 0 0 0 0 rgba(255, 193, 7, 0.7); }
       70% { box-shadow: 0 0 0 10px rgba(255, 193, 7, 0); }
@@ -52,12 +52,52 @@
       font-weight: bold;
       animation: pulse 1.5s infinite;
     }
+
+    /* Overlay */
+    #celebration-overlay {
+      position: fixed;
+      top: 0; left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0,0,0,0.7);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 9999;
+      flex-direction: column;
+      animation: fadeIn 0.4s ease-in-out;
+    }
+
+    #celebration-overlay h1 {
+      color: #fff;
+      font-size: 48px;
+      animation: bounce 1s infinite;
+      text-align: center;
+    }
+
+    @keyframes bounce {
+      0%, 100% { transform: translateY(0); }
+      50% { transform: translateY(-10px); }
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; }
+      to { opacity: 1; }
+    }
   </style>
 
-  <!-- 🎉 Confetti library -->
+  <!-- Confetti -->
   <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
 </head>
 <body>
+  <!-- Celebration Overlay -->
+  <div id="celebration-overlay">
+    <h1>🎯 Stage Complete!</h1>
+  </div>
+
+  <!-- Sound -->
+  <audio id="celebration-sound" src="https://assets.mixkit.co/sfx/preview/mixkit-game-bonus-reached-2065.mp3"></audio>
+
   <!-- LOGIN FORM -->
   <div id="login-section" class="section">
     <h2>Broker Login</h2>
@@ -91,7 +131,7 @@
   </div>
 
   <script>
-    let previousStageMap = {}; // 🧠 Tracks previous stage per RFP
+    let previousStageMap = {};
 
     async function verifyBroker() {
       const username = document.getElementById("username").value;
@@ -126,39 +166,42 @@
     }
 
     function triggerFireworks() {
-  const duration = 1.5 * 1000;
-  const animationEnd = Date.now() + duration;
-  const defaults = { startVelocity: 30, spread: 360, ticks: 60, zIndex: 1000 };
+      const sound = document.getElementById("celebration-sound");
+      const overlay = document.getElementById("celebration-overlay");
 
-  function randomInRange(min, max) {
-    return Math.random() * (max - min) + min;
-  }
+      // 🔊 Play sound
+      sound.currentTime = 0;
+      sound.play();
 
-  const interval = setInterval(() => {
-    const timeLeft = animationEnd - Date.now();
+      // 🎉 Show overlay
+      overlay.style.display = "flex";
+      setTimeout(() => {
+        overlay.style.display = "none";
+      }, 3000);
 
-    if (timeLeft <= 0) {
-      return clearInterval(interval);
+      // 🎆 Confetti burst
+      const duration = 1.5 * 1000;
+      const animationEnd = Date.now() + duration;
+      const defaults = { startVelocity: 30, spread: 360, ticks: 60, zIndex: 1000 };
+
+      function randomInRange(min, max) {
+        return Math.random() * (max - min) + min;
+      }
+
+      const interval = setInterval(() => {
+        const timeLeft = animationEnd - Date.now();
+        if (timeLeft <= 0) return clearInterval(interval);
+
+        confetti(Object.assign({}, defaults, {
+          particleCount: 60,
+          origin: { x: randomInRange(0.1, 0.3), y: Math.random() - 0.2 }
+        }));
+        confetti(Object.assign({}, defaults, {
+          particleCount: 60,
+          origin: { x: randomInRange(0.7, 0.9), y: Math.random() - 0.2 }
+        }));
+      }, 250);
     }
-
-    confetti(Object.assign({}, defaults, {
-      particleCount: 60,
-      origin: {
-        x: randomInRange(0.1, 0.3),
-        y: Math.random() - 0.2
-      }
-    }));
-
-    confetti(Object.assign({}, defaults, {
-      particleCount: 60,
-      origin: {
-        x: randomInRange(0.7, 0.9),
-        y: Math.random() - 0.2
-      }
-    }));
-  }, 250);
-}
-
 
     function loadDashboard() {
       const brokerName = sessionStorage.getItem("brokerName");
@@ -186,7 +229,6 @@
             const stages = ["Census Received", "Processing", "Engaging Carriers", "Preparing Quote", "Quote Returned"];
             const currentIndex = proj.stageIndex || 0;
 
-            // 🎉 Fireworks if stage advanced
             const prev = previousStageMap[proj.projectName];
             if (prev !== undefined && currentIndex > prev) {
               triggerFireworks();
