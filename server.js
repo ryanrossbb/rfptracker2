@@ -1,132 +1,86 @@
-require('dotenv').config();
-const express = require('express');
-const Airtable = require('airtable');
-const cors = require('cors');
-const path = require('path');
-const multer = require('multer');
-const fs = require('fs');
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>BrokersBloc Tracker</title>
+</head>
+<body>
+  <div id="login-section">
+    <h2>Login</h2>
+    <input type="email" id="email" placeholder="Email" /><br>
+    <input type="password" id="password" placeholder="Password" /><br>
+    <button onclick="verifyBroker()">Login</button>
+    <p id="login-error" style="color:red;"></p>
+  </div>
 
-console.log("🔥 server.js started");
+  <div id="dashboard-section" style="display:none;">
+    <h2 id="welcome-msg"></h2>
+    <button onclick="openRfpForm()">Submit New RFP</button>
+    <button onclick="loadDashboard()">Refresh Tracker</button>
+    <button onclick="logout()">Logout</button>
+    <div id="tracker-container"></div>
+  </div>
 
-const app = express();
-const PORT = process.env.PORT || 3000;
+  <script>
+    async function verifyBroker() {
+      const email = document.getElementById("email").value;
+      const password = document.getElementById("password").value;
 
-app.use(cors());
-app.use(express.static(path.join(__dirname))); // Serve static files like index.html
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
+      const res = await fetch(`/api/verify-broker?email=${encodeURIComponent(email)}&password=${encodeURIComponent(password)}`);
+      const data = await res.json();
 
-const upload = multer({ dest: 'uploads/' }); // save uploaded files temporarily
-
-const base = new Airtable({ apiKey: process.env.AIRTABLE_TOKEN }).base(process.env.AIRTABLE_BASE);
-
-const stageMap = {
-  "Census Received": 0,
-  "Processing": 1,
-  "Engaging Carriers": 2,
-  "Preparing Quote": 3,
-  "Quote Returned": 4
-};
-
-// ✅ LOGIN ROUTE
-app.get('/api/verify-broker', async (req, res) => {
-  const email = req.query.email;
-  const pin = req.query.pin;
-  const username = req.query.username;
-
-  if (!email || !pin || !username) {
-    return res.status(400).json({ error: "Missing email, PIN, or username" });
-  }
-
-  console.log("Received login:", { email, pin, username });
-
-  try {
-    const records = await base(process.env.AIRTABLE_BROKER_TABLE).select({
-      filterByFormula: `AND(
-        LOWER(TRIM({Email})) = LOWER('${email.trim()}'),
-        TRIM({PIN}) = '${pin.trim()}',
-        TRIM({Username}) = '${username.trim()}'
-      )`,
-      maxRecords: 1
-    }).firstPage();
-
-    if (!records.length) {
-      return res.status(403).json({ error: "Invalid login credentials" });
+      if (res.ok) {
+        sessionStorage.setItem("brokerName", data.brokerName);
+        sessionStorage.setItem("brokerEmail", email);
+        sessionStorage.setItem("brokerPassword", password);
+        loadDashboard();
+      } else {
+        document.getElementById("login-error").textContent = "Invalid email or password.";
+      }
     }
 
-    return res.json({ brokerName: username });
+    function loadDashboard() {
+      const name = sessionStorage.getItem("brokerName");
+      const email = sessionStorage.getItem("brokerEmail");
 
-  } catch (err) {
-    console.error("❌ Broker verification failed:", err);
-    res.status(500).json({ error: "Server error during login" });
-  }
-});
+      if (!name || !email) return;
 
-// ✅ GET PROJECTS
-app.get('/api/projects', async (req, res) => {
-  const brokerName = req.query.broker;
-  if (!brokerName) return res.status(400).json({ error: "Missing Username" });
+      document.getElementById("login-section").style.display = "none";
+      document.getElementById("dashboard-section").style.display = "block";
+      document.getElementById("welcome-msg").textContent = `Welcome, ${name}`;
 
-  try {
-    const records = await base(process.env.AIRTABLE_TABLE).select({
-      filterByFormula: `{Username} = '${brokerName}'`
-    }).all();
+      fetch(`/api/projects?broker=${encodeURIComponent(name)}`)
+        .then(res => res.json())
+        .then(data => {
+          const container = document.getElementById("tracker-container");
+          container.innerHTML = "";
+          if (!data.length) {
+            container.innerHTML = "<p>No RFPs found.</p>";
+            return;
+          }
+          data.forEach(rfp => {
+            container.innerHTML += `<div><strong>${rfp.projectName}</strong> - ${rfp.stage} - ${rfp.timeRemaining}</div>`;
+          });
+        });
+    }
 
-    console.log("Returned fields:");
-    records.forEach(record => {
-      console.log(record.fields);
-    });
+    function openRfpForm() {
+      const name = sessionStorage.getItem("brokerName");
+      const email = sessionStorage.getItem("brokerEmail");
+      const password = sessionStorage.getItem("brokerPassword");
 
-    const results = records
-      .filter(r => r.fields["Stage"] && r.fields["RFP Name"])
-      .map(record => ({
-        projectName: record.fields["RFP Name"],
-        stage: record.fields["Stage"],
-        stageIndex: stageMap[record.fields["Stage"]],
-        timeRemaining: record.fields["Time Remaining"] || "N/A",
-        submissionTime: record.fields["created"] || null
-      }));
+      const url = `https://airtable.com/appTl5b0TOB6Sh8N5/pagd8oOz2RO9zbYGb/form?prefill_Username=${encodeURIComponent(name)}&prefill_Email=${encodeURIComponent(email)}&prefill_Password=${encodeURIComponent(password)}`;
+      window.open(url, "_blank");
+    }
 
-    res.json(results);
+    function logout() {
+      sessionStorage.clear();
+      location.reload();
+    }
 
-  } catch (err) {
-    console.error("❌ Airtable query failed:", err);
-    res.status(500).json({ error: "Airtable query failed" });
-  }
-});
-
-// ✅ UPLOAD RFP
-app.post('/api/upload-rfp', upload.single('file'), async (req, res) => {
-  const { username, groupName } = req.body;
-  const file = req.file;
-
-  if (!username || !groupName || !file) {
-    return res.status(400).json({ error: 'Missing required fields' });
-  }
-
-  try {
-    // You can replace this with real file hosting later (e.g., S3 or Cloudinary)
-    const record = await base(process.env.AIRTABLE_TABLE).create({
-      "Username": username,
-      "RFP Name": groupName,
-      "Stage": "Census Received",
-      "Time Remaining": "TBD",
-      "File Upload": [
-        {
-          url: `https://yourdomain.com/uploads/${file.filename}`,
-          filename: file.originalname
-        }
-      ]
-    });
-
-    res.json({ success: true, recordId: record.id });
-
-  } catch (err) {
-    console.error("❌ Error uploading RFP:", err);
-    res.status(500).json({ error: "Upload failed" });
-  }
-});
-
-app.listen(PORT, () => {
-  console.log(`✅ Server running at http://localhost:${PORT}`);
-});
+    if (sessionStorage.getItem("brokerName")) {
+      loadDashboard();
+    }
+  </script>
+</body>
+</html>
