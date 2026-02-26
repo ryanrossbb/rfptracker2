@@ -33,18 +33,32 @@
     }
 
     #rfp-summary {
+      display: flex;
+      gap: 1.5rem;
+      justify-content: center;
+      margin-bottom: 1.5rem;
+      flex-wrap: wrap;
+    }
+
+    .summary-card {
       background: #f0f4ff;
       border: 1px solid #c7d4f0;
       border-radius: 8px;
       padding: 1rem 1.5rem;
-      margin-bottom: 1.5rem;
-      font-size: 1.1rem;
+      font-size: 1rem;
+      min-width: 200px;
     }
 
-    #rfp-summary span {
+    .summary-card span {
+      display: block;
       font-weight: bold;
-      font-size: 1.4rem;
+      font-size: 1.6rem;
       color: #007bff;
+      margin-top: 0.25rem;
+    }
+
+    .summary-card.closed span {
+      color: #28a745;
     }
 
     table {
@@ -116,7 +130,14 @@
     <div id="rfp-section">
       <h2>Your RFPs</h2>
       <div id="rfp-summary" style="display:none">
-        Total Lives Submitted: <span id="total-lives">—</span>
+        <div class="summary-card">
+          Total Lives Submitted
+          <span id="total-lives">0</span>
+        </div>
+        <div class="summary-card closed">
+          Lives Closed
+          <span id="closed-lives">0</span>
+        </div>
       </div>
       <p id="rfp-loading" style="display:none"></p>
       <p id="rfp-error" style="display:none"></p>
@@ -166,6 +187,7 @@
       const tbodyEl = document.getElementById("rfp-tbody");
       const summaryEl = document.getElementById("rfp-summary");
       const totalLivesEl = document.getElementById("total-lives");
+      const closedLivesEl = document.getElementById("closed-lives");
 
       loadingEl.textContent = "Loading RFPs...";
       loadingEl.style.display = "block";
@@ -188,9 +210,13 @@
         }
 
         let totalLives = 0;
+        let closedLives = 0;
         projects.forEach(p => {
           const lives = p.livesSubmitted;
-          if (typeof lives === "number") totalLives += lives;
+          if (typeof lives === "number") {
+            totalLives += lives;
+            if (p.stage === "Quote Returned") closedLives += lives;
+          }
 
           const tr = document.createElement("tr");
           tr.innerHTML = `
@@ -204,8 +230,9 @@
           tbodyEl.appendChild(tr);
         });
 
-        totalLivesEl.textContent = totalLives > 0 ? totalLives.toLocaleString() : "—";
-        summaryEl.style.display = "block";
+        totalLivesEl.textContent = totalLives.toLocaleString();
+        closedLivesEl.textContent = closedLives.toLocaleString();
+        summaryEl.style.display = "flex";
         tableEl.style.display = "table";
 
       } catch (err) {
