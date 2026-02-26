@@ -31,30 +31,29 @@ const stageMap = {
 // ✅ LOGIN ROUTE
 app.get('/api/verify-broker', async (req, res) => {
   const email = req.query.email;
-  const pin = req.query.pin;
-  const username = req.query.username;
+  const password = req.query.password;
 
-  if (!email || !pin || !username) {
-    return res.status(400).json({ error: "Missing email, PIN, or username" });
+  if (!email || !password) {
+    return res.status(400).json({ error: "Missing email or password" });
   }
 
-  console.log("Received login:", { email, pin, username });
+  console.log("Received login:", { email });
 
   try {
     const records = await base(process.env.AIRTABLE_BROKER_TABLE).select({
       filterByFormula: `AND(
         LOWER(TRIM({Email})) = LOWER('${email.trim()}'),
-        TRIM({PIN}) = '${pin.trim()}',
-        TRIM({Username}) = '${username.trim()}'
+        TRIM({Password}) = '${password.trim()}'
       )`,
       maxRecords: 1
     }).firstPage();
 
     if (!records.length) {
-      return res.status(403).json({ error: "Invalid login credentials" });
+      return res.status(403).json({ error: "Invalid email or password" });
     }
 
-    return res.json({ brokerName: username });
+    const brokerName = records[0].fields["Username"] || records[0].fields["Name"] || email;
+    return res.json({ brokerName });
 
   } catch (err) {
     console.error("❌ Broker verification failed:", err);
