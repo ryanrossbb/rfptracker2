@@ -84,7 +84,8 @@ app.get('/api/projects', async (req, res) => {
         stage: record.fields["Stage"],
         stageIndex: stageMap[record.fields["Stage"]],
         timeRemaining: record.fields["Time Remaining"] || "N/A",
-        submissionTime: record.fields["created"] || null
+        submissionTime: record.fields["created"] || null,
+        livesSubmitted: record.fields["Group Size"] || null
       }));
 
     res.json(results);
